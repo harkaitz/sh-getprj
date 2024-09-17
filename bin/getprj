@@ -1,0 +1,91 @@
+#!/bin/sh -e
+##:
+#h: Usage: getprj NAMES...
+#h:
+#h: Search a project named "NAME" in a directory listed in one of
+#h: the following places:
+#h:
+#h:   - PROJECT_PATH        Space separated directory list.
+#h:   - /etc/projectdirs    Newline separated directory list.
+#h:   - ~/.projectdirs      Newline separated directory list.
+#h:
+#h: Supported flags:
+#h:
+#h:   -l      List project directories.
+#h:   -c      Clear cache (~/.getprj.cache).
+#h:   -m MSG  Print message when not found.
+#h:
+#h: The cache is updated each time a project is not found.
+##:
+getprj() {
+    local OPTIND optopt name found updated= msg=
+    
+    ## Parse command line arguments.
+    while getopts "lcm:" optopt; do
+        case $optopt in
+            l)  getprj_project_directories; return 0;;
+            c)  rm -f ~/.getprj.cache;;
+            m)  msg="${OPTARG}";;
+            \?) return 1;;
+        esac
+    done
+    shift $(( $OPTIND - 1 ))
+    
+    ## Create cache.
+    if test ! -n "$1" || test ! -f ~/.getprj.cache; then
+        find $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
+        updated=y
+    fi
+    
+    ## List projects.
+    if test ! -n "$1"; then
+        cat ~/.getprj.cache
+    fi
+    
+    ## Print paths.
+    for name in "$@"; do
+        ## Attempt 1
+        found="$(sed -n "\\|/${name}\$|{p;q;}" ~/.getprj.cache)"
+        if test -d "${found}"; then
+            printf '%s\n' "${found}"
+            continue
+        elif test -n "${updated}"; then
+            echo >&2 "getprj: error: ${name}: Project not found."
+            test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
+            return 1
+        fi
+        ## Update cache.
+        find $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
+        updated=y
+        ## Attempt 2
+        found="$(sed -n "\\|/${name}\$|{p;q;}" ~/.getprj.cache)"
+        if test -d "${found}"; then
+            printf '%s\n' "${found}"
+            continue
+        else
+            echo >&2 "getprj: error: ${name}: Project not found."
+            test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
+            return 1
+        fi
+    done
+}
+## -------------------------------------------------------------------
+getprj_project_directories() {
+    local d
+    for d in \
+        ${PROJECT_PATH} \
+        $(test ! -f ~/.projectdirs   || cat ~/.projectdirs) \
+        $(test ! -f /etc/projectdirs || cat /etc/projectdirs)
+    do
+        if test -d "${d}"; then
+            printf '%s\n' "${d}"
+        fi
+    done
+}
+## -------------------------------------------------------------------
+if test @"${SCRNAME:-$(basename "$0")}" = @"getprj"; then
+    case "${1}" in
+        -h|--help) sed -n 's/^ *#h: \{0,1\}//p' "$0";;
+        *)         getprj "$@"; exit 0;;
+    esac
+fi
