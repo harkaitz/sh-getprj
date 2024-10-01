@@ -33,7 +33,7 @@ getprj() {
     
     ## Create cache.
     if test ! -n "$1" || test ! -f ~/.getprj.cache; then
-        find $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
+        find -L $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d -and -not -name .git > ~/.getprj.cache
         updated=y
     fi
     
