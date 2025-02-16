@@ -18,7 +18,7 @@
 #h: The cache is updated each time a project is not found.
 ##:
 getprj() {
-    local OPTIND optopt name found updated= msg=
+    local OPTIND=1 optopt name found updated= msg=
     
     ## Parse command line arguments.
     while getopts "lcm:" optopt; do
