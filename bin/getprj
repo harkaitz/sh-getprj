@@ -55,6 +55,7 @@ getprj() {
             return 1
         fi
         ## Update cache.
+        rm -f ~/.getprj.cache
         find $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
         updated=y
         ## Attempt 2
