@@ -56,7 +56,7 @@ getprj() {
         fi
         ## Update cache.
         rm -f ~/.getprj.cache
-        find $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
+        find -L $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
         updated=y
         ## Attempt 2
         found="$(sed -n "\\|/${name}\$|{p;q;}" ~/.getprj.cache)"
