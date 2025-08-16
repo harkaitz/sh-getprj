@@ -44,11 +44,11 @@ getprj() {
     
     ## Prepare search command.
     for name in "$@"; do
-        sed="${sed}\\|/${name}\$|{p;q;};"
+        sed="${sed}\\|/${name}\$|p;"
     done
         
     ## Attempt 1
-    found="$(sed -n "${sed}" ~/.getprj.cache)"
+    found="$(sed -n "${sed}" ~/.getprj.cache | sort | tail -n 1)"
     if test -d "${found}"; then
         printf '%s\n' "${found}"
         return 0
