@@ -18,7 +18,7 @@
 #h: The cache is updated each time a project is not found.
 ##:
 getprj() {
-    local OPTIND=1 optopt name found updated= msg=
+    local OPTIND=1 optopt name found msg= sed=
     
     ## Parse command line arguments.
     while getopts "lcm:" optopt; do
@@ -34,7 +34,7 @@ getprj() {
     ## Create cache.
     if test ! -n "$1" || test ! -f ~/.getprj.cache; then
         find -L $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d -and -not -name .git > ~/.getprj.cache
-        updated=y
+        GETPRJ_UPDATED=y
     fi
     
     ## List projects.
@@ -42,33 +42,37 @@ getprj() {
         cat ~/.getprj.cache
     fi
     
-    ## Print paths.
+    ## Prepare search command.
     for name in "$@"; do
-        ## Attempt 1
-        found="$(sed -n "\\|/${name}\$|{p;q;}" ~/.getprj.cache)"
-        if test -d "${found}"; then
-            printf '%s\n' "${found}"
-            continue
-        elif test -n "${updated}"; then
-            echo >&2 "getprj: error: ${name}: Project not found."
-            test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
-            return 1
-        fi
-        ## Update cache.
-        rm -f ~/.getprj.cache
-        find -L $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
-        updated=y
-        ## Attempt 2
-        found="$(sed -n "\\|/${name}\$|{p;q;}" ~/.getprj.cache)"
-        if test -d "${found}"; then
-            printf '%s\n' "${found}"
-            continue
-        else
-            echo >&2 "getprj: error: ${name}: Project not found."
-            test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
-            return 1
-        fi
+        sed="${sed}\\|/${name}\$|{p;q;};"
     done
+        
+    ## Attempt 1
+    found="$(sed -n "${sed}" ~/.getprj.cache)"
+    if test -d "${found}"; then
+        printf '%s\n' "${found}"
+        return 0
+    elif test -n "${GETPRJ_UPDATED}"; then
+        echo >&2 "getprj: error: Project not found: $*"
+        test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
+        return 1
+    fi
+    
+    ## Update cache.
+    rm -f ~/.getprj.cache
+    find -L $(getprj_project_directories) -mindepth 1 -maxdepth 1 -type d > ~/.getprj.cache
+    GETPRJ_UPDATED=y
+
+    ## Attempt 2
+    found="$(sed -n "${sed}" ~/.getprj.cache)"
+    if test -d "${found}"; then
+        printf '%s\n' "${found}"
+        return 0
+    else
+        echo >&2 "getprj: error: ${name}: Project not found."
+        test ! -n "${msg}" || echo >&2 "getprj: ${msg}"
+        return 1
+    fi
 }
 ## -------------------------------------------------------------------
 getprj_project_directories() {
