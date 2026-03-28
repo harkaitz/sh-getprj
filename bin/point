@@ -1,0 +1,91 @@
+#!/bin/sh -e
+##:
+#h: Usage: point NAME [PATHNAME]
+#h:
+#h: Point from the current directory to PATHNAME. Links are saved
+#h: in ".point" file. Scripts can require you to specify a path the
+#h: following way:
+#h:
+#h: Example script:
+#h:
+#h:     #!/bin/sh -e
+#h:     te="$(point -g te 'The testing environment.')"
+#h:     test -n "${te}"
+#h:     "${te}/test.sh" ./program
+#h:
+#h: Files: .point
+##:
+point() {
+    local OPTIND=1 optopt opt_g=
+    
+    # Parse command line arguments.
+    while getopts "g" optopt; do # OPTARG
+        case $optopt in
+            g)   opt_g="y" ;;
+            \?)  return 1  ;;
+        esac
+    done
+    shift $(( $OPTIND - 1 ))
+
+    # Operations.
+    if test -n "${opt_g}"; then
+        point_get "$@"
+    elif test -n "${1}"; then
+        point_set "$@"
+    else
+        point_ls
+    fi
+
+    #
+    return 0
+}
+# --------------------------------------------------------------------
+point_ls() {
+    if test ! -f "${POINT_FILE}"; then
+        echo "point: No point file (${POINT_FILE})." >&2
+        return 1
+    fi
+    awk -F = '{printf "%-20s %s\n", $1, $2}' "${POINT_FILE}"
+}
+point_set() {
+    local name="$1" path="$2"
+    if test ! -n "${name}"; then
+        echo "error: Missing pointer name." >&2
+        return 1
+    elif test ! -n "${path}"; then
+        echo "error: Missing pathname." >&2
+        return 1
+    fi
+    path="$(readlink -f "${path}")"
+    test -n "${path}"
+    if grep -q "^${name}" "${POINT_FILE}" 2>/dev/null; then
+        sed -i "/^${name}=/s|=.*|=${path}|" "${POINT_FILE}"
+    else
+        echo "${name}=${path}" >> "${POINT_FILE}"
+    fi
+}
+point_get() {
+    local name="$1" desc="$2" found=
+    if test ! -n "${name}"; then
+        echo "error: Missing pointer name." >&2
+        return 1
+    fi
+    if test -f "${POINT_FILE}"; then
+        found="$(awk -F = -v name="${name}" '{print $2}' "${POINT_FILE}")"
+    fi
+    if test ! -n "${found}"; then
+        echo "error: Please select a path with: point ${name} PATH" >&2
+        test ! -n "${desc}" || echo "     : PATH = ${desc}" >&2
+        return 1
+    fi
+    echo "${found}"
+}
+# --------------------------------------------------------------------
+: ${POINT_FILE:=./.point}
+if test @"${0##*/}" = @"point"; then
+    export MSYS_NO_PATHCONV=1
+    case "${1}" in
+        -h|--help) sed -n 's/^ *#h: \{0,1\}//p' "$0";;
+        *)         point "$@"; exit 0;;
+    esac
+fi

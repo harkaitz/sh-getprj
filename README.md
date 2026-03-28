@@ -22,10 +22,28 @@ getprj
     
     The cache is updated each time a project is not found.
 
+point
+
+    Usage: point NAME [PATHNAME]
+    
+    Point from the current directory to PATHNAME. Links are saved
+    in ".point" file. Scripts can require you to specify a path the
+    following way:
+    
+    Example script:
+    
+        #!/bin/sh -e
+        te="$(point -g te 'The testing environment.')"
+        test -n "${te}"
+        "${te}/test.sh" ./program
+    
+    Files: .point
+
 ## Collaborating
 
-For making bug reports, feature requests, support or consulting visit
-one of the following links:
+Feel free to open bug reports and feature/pull requests.
 
-1. [gemini://harkadev.com/oss/](gemini://harkadev.com/oss/)
-2. [https://harkadev.com/oss/](https://harkadev.com/oss/)
+More software like this here:
+
+1. [https://harkadev.com/prj/](https://harkadev.com/prj/)
+2. [https://devreal.org](https://devreal.org)
