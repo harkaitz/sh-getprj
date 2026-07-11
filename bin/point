@@ -71,7 +71,7 @@ point_get() {
         return 1
     fi
     if test -f "${POINT_FILE}"; then
-        found="$(awk -F = -v name="${name}" '{print $2}' "${POINT_FILE}")"
+        found="$(awk -F = -v name="${name}" 'name == $1 {print $2}' "${POINT_FILE}")"
     fi
     if test ! -n "${found}"; then
         echo "error: Please select a path with: point ${name} PATH" >&2
